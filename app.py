@@ -210,6 +210,55 @@ def stop_following(follow_id):
     return redirect(f"/users/{g.user.id}/following")
 
 
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Show list of messages this user has liked."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+
+    liked_messages = [m.id for m in g.user.likes]
+    messages = (Message
+                    .query
+                    .filter(Message.id.in_(liked_messages))
+                    .order_by(Message.timestamp.desc())
+                    .all())
+    return render_template('users/likes.html', user=user, messages=messages)
+    
+
+@app.route('/users/add_like/<int:message_id>', methods=['POST'])
+def add_like(message_id):
+    """Add a like to a message."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    liked_message = Message.query.get(message_id)
+    g.user.likes.append(liked_message)
+    db.session.commit()
+
+    return redirect(f"/users/{g.user.id}/likes")
+
+
+@app.route('/users/remove_like/<int:message_id>', methods=['POST'])
+def remove_like(message_id):
+    """Unlike this message."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    liked_message = Message.query.get(message_id)
+    g.user.likes.remove(liked_message)
+    db.session.commit()
+
+    return redirect(f"/users/{g.user.id}/likes")
+
+
 @app.route('/users/profile', methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
